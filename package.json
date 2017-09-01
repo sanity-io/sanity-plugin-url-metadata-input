@@ -12,6 +12,10 @@
     "sanity",
     "sanity-plugin"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:sanity-io/sanity-plugin-url-metadata-input.git"
+  },
   "dependencies": {
     "@sanity/form-builder": "^0.110.1"
   },
