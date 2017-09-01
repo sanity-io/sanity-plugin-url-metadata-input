@@ -144,7 +144,7 @@ class UrlMetadataInput extends PureComponent {
     const resolvedUrl = value && value.resolvedUrl
 
     const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
-    const legends = metaFieldNames.reduce((target, fieldName) => {
+    const legends = resolvedUrl && metaFieldNames.reduce((target, fieldName) => {
       const numItems = count(value[fieldName])
       const base = metaFields.find(field => field.name === fieldName).type.title
       const items = numItems > 1 ? 'items' : 'item'
