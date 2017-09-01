@@ -1,0 +1,28 @@
+{
+  "name": "sanity-plugin-url-metadata-input",
+  "version": "0.1.0",
+  "description": "URL input that extracts metadata from given URL",
+  "main": "lib/UrlMetadataInput.js",
+  "author": "Sanity.io <hello@sanity.io>",
+  "license": "MIT",
+  "scripts": {
+    "clean": "rimraf lib"
+  },
+  "keywords": [
+    "sanity",
+    "sanity-plugin"
+  ],
+  "dependencies": {
+    "@sanity/form-builder": "^0.110.1"
+  },
+  "devDependencies": {
+    "eslint": "^3.19.0",
+    "eslint-config-sanity": "^2.1.4",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-react": "^6.10.0",
+    "prop-types": "^15.5.10",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "rimraf": "^2.6.1"
+  }
+}

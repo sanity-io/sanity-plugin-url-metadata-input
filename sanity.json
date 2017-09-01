@@ -1,0 +1,17 @@
+{
+  "paths": {
+    "source": "./src",
+    "compiled": "./lib"
+  },
+
+  "parts": [
+    {
+      "name": "part:url-metadata-input/input",
+      "path": "UrlMetadataInput.js"
+    },
+    {
+      "name": "part:url-metadata-input/schema",
+      "path": "schema.js"
+    }
+  ]
+}
