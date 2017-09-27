@@ -1,7 +1,6 @@
 import React, {PureComponent} from 'react'
 import PropTypes from 'prop-types'
-import {FormBuilderInput} from 'part:@sanity/form-builder'
-import PatchEvent, {set, unset} from '@sanity/form-builder/PatchEvent'
+import {FormBuilderInput, PatchEvent, patches} from 'part:@sanity/form-builder'
 import InInputButton from 'part:@sanity/components/buttons/in-input'
 import inInputStyles from 'part:@sanity/components/buttons/in-input-style'
 import TextInput from 'part:@sanity/components/textinputs/default'
@@ -12,6 +11,7 @@ import fieldsetStyles from './fieldsetStyles.css'
 
 const metaFieldNames = ['meta', 'openGraph']
 const count = obj => Object.keys(obj || {}).length
+const {set, unset} = patches
 
 class UrlMetadataInput extends PureComponent {
   hasEdited = false
@@ -140,7 +140,7 @@ class UrlMetadataInput extends PureComponent {
 
   render() {
     const {loading} = this.state
-    const {value, type} = this.props
+    const {value, type, level} = this.props
     const resolvedUrl = value && value.resolvedUrl
 
     const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
@@ -171,15 +171,16 @@ class UrlMetadataInput extends PureComponent {
           </div>
         </div>
 
-        {resolvedUrl && metaFields.map(field =>
+        {resolvedUrl && metaFields.map(field => (
           <Fieldset key={field.name} legend={legends[field.name]} styles={fieldsetStyles} collapsable>
             <FormBuilderInput
               type={field.type}
               value={value && value[field.name]}
+              level={level}
               onChange={patchEvent => this.handleFieldChange(field, patchEvent)}
             />
           </Fieldset>
-        )}
+        ))}
       </FormField>
     )
   }
@@ -191,6 +192,7 @@ UrlMetadataInput.defaultProps = {
 
 UrlMetadataInput.propTypes = {
   onChange: PropTypes.func.isRequired,
+  level: PropTypes.number.isRequired,
   type: PropTypes.shape({
     title: PropTypes.string.isRequired,
     description: PropTypes.string
