@@ -12,25 +12,9 @@ sanity install url-metadata-input
 
 ## Usage
 
-Import the type into your schema:
+Use it in your schema types:
 
 ```js
-import {schema as urlWithMetadata} from 'part:url-metadata-input/input'
-
-// [...]
-export default createSchema({
-  types: [
-    // [...]
-    urlWithMetadata
-  ]
-})
-```
-
-Then use it in your schema types:
-
-```js
-import {Input as UrlWithMetadataInput} from 'part:url-metadata-input/input'
-
 // [...]
 {
   fields: [
@@ -38,8 +22,7 @@ import {Input as UrlWithMetadataInput} from 'part:url-metadata-input/input'
     {
       name: 'relatedUrl',
       title: 'Related URL',
-      type: 'urlWithMetadata',
-      inputComponent: UrlWithMetadataInput
+      type: 'urlWithMetadata'
     }
   ]
 }

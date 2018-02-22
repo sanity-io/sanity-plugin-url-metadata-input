@@ -1,6 +1,8 @@
 export default {
   name: 'urlWithMetadata',
+  title: 'URL with metadata',
   type: 'object',
+  inputComponent: require('./UrlMetadataInput'),
   fieldsets: [
     {
       name: 'meta',
@@ -22,7 +24,7 @@ export default {
     {
       title: 'Crawled at',
       name: 'crawledAt',
-      type: 'string' // @todo change to date when dates are... simple dates
+      type: 'datetime'
     },
 
     {
@@ -53,76 +55,76 @@ export default {
         {
           title: 'Title',
           name: 'title',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Description',
           name: 'description',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Site name',
           name: 'siteName',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Type',
           name: 'type',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'URL',
           name: 'url',
-          type: 'url',
+          type: 'url'
         },
 
         // Image
         {
           title: 'Image URL',
           name: 'image',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Image description',
           name: 'imageAlt',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Image Secure URL',
           name: 'imageSecureUrl',
-          type: 'url',
+          type: 'url'
         },
         {
           title: 'Image type',
           name: 'imageType',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Image height',
           name: 'imageHeight',
-          type: 'number',
+          type: 'number'
         },
         {
           title: 'Image width',
           name: 'imageWidth',
-          type: 'number',
+          type: 'number'
         },
 
         // Audio
         {
           title: 'Audio URL',
           name: 'audio',
-          type: 'url',
+          type: 'url'
         },
         {
           title: 'Audio Secure URL',
           name: 'audioSecureUrl',
-          type: 'url',
+          type: 'url'
         },
         {
           title: 'Audio type',
           name: 'audioType',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Determiner',
@@ -135,34 +137,34 @@ export default {
         {
           title: 'Locale',
           name: 'locale',
-          type: 'string',
+          type: 'string'
         },
 
         // Video
         {
           title: 'Video URL',
           name: 'video',
-          type: 'url',
+          type: 'url'
         },
         {
           title: 'Video Secure URL',
           name: 'videoSecureUrl',
-          type: 'url',
+          type: 'url'
         },
         {
           title: 'Video type',
           name: 'videoType',
-          type: 'string',
+          type: 'string'
         },
         {
           title: 'Video height',
           name: 'videoHeight',
-          type: 'number',
+          type: 'number'
         },
         {
           title: 'Video width',
           name: 'videoWidth',
-          type: 'number',
+          type: 'number'
         }
       ]
     }

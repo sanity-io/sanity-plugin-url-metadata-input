@@ -28,10 +28,17 @@ class UrlMetadataInput extends PureComponent {
       return
     }
 
-    onChange(PatchEvent.from(
-      unset(),
-      set({_type: type.name, url: value.trim()})
-    ))
+    onChange(PatchEvent.from(unset(), set({_type: type.name, url: value.trim()})))
+  }
+
+  setFirstField = el => {
+    this._firstField = el
+  }
+
+  focus() {
+    if (this._firstField) {
+      this._firstField.focus()
+    }
   }
 
   handleFocus = () => {
@@ -59,10 +66,9 @@ class UrlMetadataInput extends PureComponent {
       json: true
     }
 
-    this.request = client.observable.request(options).subscribe(
-      res => this.handleReceiveMetadata(res, url),
-      this.handleFetchError
-    )
+    this.request = client.observable
+      .request(options)
+      .subscribe(res => this.handleReceiveMetadata(res, url), this.handleFetchError)
   }
 
   handleUrlKeyUp = evt => {
@@ -94,7 +100,7 @@ class UrlMetadataInput extends PureComponent {
       _type: type.name,
       crawledAt: new Date().toISOString(),
       url,
-      resolvedUrl,
+      resolvedUrl
     }
 
     // Reduce the returned fields to only schema-defined fields,
@@ -140,22 +146,25 @@ class UrlMetadataInput extends PureComponent {
 
   render() {
     const {loading} = this.state
-    const {value, type, level} = this.props
+    const {value, type, level, onFocus, onBlur, focusPath, markers} = this.props
     const resolvedUrl = value && value.resolvedUrl
 
     const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
-    const legends = resolvedUrl && metaFieldNames.reduce((target, fieldName) => {
-      const numItems = count(value[fieldName])
-      const base = metaFields.find(field => field.name === fieldName).type.title
-      const items = numItems > 1 ? 'items' : 'item'
-      target[fieldName] = `${base} (${numItems} ${items})`
-      return target
-    }, {})
+    const legends =
+      resolvedUrl &&
+      metaFieldNames.reduce((target, fieldName) => {
+        const numItems = count(value[fieldName])
+        const base = metaFields.find(field => field.name === fieldName).type.title
+        const items = numItems > 1 ? 'items' : 'item'
+        target[fieldName] = `${base} (${numItems} ${items})`
+        return target
+      }, {})
 
     return (
       <FormField label={type.title} description={type.description}>
         <div className={inInputStyles.wrapper}>
           <TextInput
+            ref={this.setFirstField}
             type="url"
             value={value === undefined ? '' : value.url}
             onKeyUp={this.handleUrlKeyUp}
@@ -171,23 +180,37 @@ class UrlMetadataInput extends PureComponent {
           </div>
         </div>
 
-        {resolvedUrl && metaFields.map(field => (
-          <Fieldset key={field.name} legend={legends[field.name]} styles={fieldsetStyles} collapsable>
-            <FormBuilderInput
-              type={field.type}
-              value={value && value[field.name]}
-              level={level}
-              onChange={patchEvent => this.handleFieldChange(field, patchEvent)}
-            />
-          </Fieldset>
-        ))}
+        {resolvedUrl &&
+          metaFields.map(field => (
+            <Fieldset
+              key={field.name}
+              legend={legends[field.name]}
+              style={fieldsetStyles}
+              isCollapsible
+            >
+              <FormBuilderInput
+                value={value && value[field.name]}
+                type={field.type}
+                onChange={patchEvent => this.handleFieldChange(field, patchEvent)}
+                path={[field.name]}
+                onFocus={onFocus}
+                onBlur={onBlur}
+                readOnly={field.type.readOnly}
+                focusPath={focusPath}
+                markers={markers.filter(marker => marker.path[0] === field.name)}
+                level={level}
+                ref={this.setInput}
+              />
+            </Fieldset>
+          ))}
       </FormField>
     )
   }
 }
 
 UrlMetadataInput.defaultProps = {
-  value: undefined
+  value: undefined,
+  markers: []
 }
 
 UrlMetadataInput.propTypes = {
@@ -207,8 +230,15 @@ UrlMetadataInput.propTypes = {
       title: PropTypes.string,
       description: PropTypes.string
     })
-  })
+  }),
+  onFocus: PropTypes.func.isRequired,
+  onBlur: PropTypes.func.isRequired,
+  focusPath: PropTypes.array,
+  markers: PropTypes.arrayOf(
+    PropTypes.shape({
+      type: PropTypes.string.isRequired
+    })
+  )
 }
 
-export const Input = UrlMetadataInput
-export {default as schema} from './schema'
+module.exports = UrlMetadataInput
