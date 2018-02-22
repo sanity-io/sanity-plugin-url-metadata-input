@@ -10,6 +10,10 @@
       "path": "UrlMetadataInput.js"
     },
     {
+      "name": "part:url-metadata-input/schema",
+      "path": "schema.js"
+    },
+    {
       "implements": "part:@sanity/base/schema-type",
       "path": "schema.js"
     }
