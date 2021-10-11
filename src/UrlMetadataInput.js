@@ -1,98 +1,95 @@
-import React, {PureComponent} from 'react'
+// @todo Maybe clean up complexity?
+/* eslint-disable complexity */
+import React, {
+  useState,
+  useCallback,
+  useRef,
+} from 'react'
 import PropTypes from 'prop-types'
-import {FormBuilderInput, PatchEvent, patches} from 'part:@sanity/form-builder'
-import InInputButton from 'part:@sanity/components/buttons/in-input'
-import inInputStyles from 'part:@sanity/components/buttons/in-input-style'
-import TextInput from 'part:@sanity/components/textinputs/default'
-import FormField from 'part:@sanity/components/formfields/default'
-import Fieldset from 'part:@sanity/components/fieldsets/default'
+import {FormBuilderInput} from '@sanity/form-builder/lib/FormBuilderInput'
+import PatchEvent, {set, unset} from '@sanity/form-builder/PatchEvent'
+import {FormFieldSet} from '@sanity/base/components'
 import client from 'part:@sanity/base/client'
-import fieldsetStyles from './fieldsetStyles.css'
+
+import {FormField} from '@sanity/base/components'
+import {TextInput, Button, Flex, Box, Stack, useToast} from '@sanity/ui'
+import {useId} from '@reach/auto-id'
+
+// @todo
+import {ChangeIndicatorCompareValueProvider} from '@sanity/base/change-indicators'
 
 const metaFieldNames = ['meta', 'openGraph']
 const count = obj => Object.keys(obj || {}).length
-const {set, unset} = patches
+const sanityClient = client.withConfig({apiVersion: 'v1'})
 
-class UrlMetadataInput extends PureComponent {
-  hasEdited = false
-  state = {loading: false}
+const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
+  const {
+    value,
+    compareValue,
+    type,
+    level,
+    onFocus,
+    onBlur,
+    onChange,
+    focusPath,
+    readOnly,
+    markers,
+    presence,
+  } = props
+  const resolvedUrl = value && value.resolvedUrl
+  const [hasEdited, setHasEdited] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const requestRef = useRef()
+  const inputId = useId()
+  const toast = useToast()
 
-  handleUrlChange = evt => {
-    this.hasEdited = true
+  const handleUrlChange = useCallback(newValue => {
+    setHasEdited(true)
 
-    const {onChange, type} = this.props
-    const value = evt.target.value
-
-    if (!value) {
+    if (!newValue) {
       onChange(PatchEvent.from(unset()))
       return
     }
 
-    onChange(PatchEvent.from(unset(), set({_type: type.name, url: value.trim()})))
+    onChange(
+      PatchEvent.from(unset(), set({_type: type.name, url: newValue.trim()}))
+    )
+  }, [onChange, setHasEdited])
+  // const handleDebouncedUrlChange = useCallback(debounce(handleUrlChange, 250), [handleUrlChange])
+  const handleBeforeUrlChange = useCallback(event => {
+    handleUrlChange(event.target.value)
+  }, [handleUrlChange])
+
+
+  const handleFocus = () => {
+    setHasEdited(false)
   }
 
-  setFirstField = el => {
-    this._firstField = el
+  // @todo Provide fetch error as validation error?
+  const handleFetchError = err => {
+    // eslint-disable-next-line
+    console.log("Error fetching metadata: ", err);
+    toast.push({
+      status: 'error',
+      title: 'Failed to fetch URL metadata',
+      description: err.message,
+    })
+    setIsLoading(false)
   }
 
-  focus() {
-    if (this._firstField) {
-      this._firstField.focus()
-    }
-  }
+  const handleReceiveMetadata = useCallback((body, url) => {
+    setIsLoading(false)
 
-  handleFocus = () => {
-    this.hasEdited = false
-  }
-
-  handleBlur = () => {
-    if (!this.hasEdited || !this.props.value.url) {
-      return
-    }
-
-    this.fetchMetadata(this.props.value.url)
-  }
-
-  fetchMetadata(url) {
-    this.setState({loading: true})
-
-    if (this.request) {
-      this.request.unsubscribe()
-    }
-
-    const options = {
-      url: '/addons/crown/resolve',
-      query: {url},
-      json: true
-    }
-
-    this.request = client.observable
-      .request(options)
-      .subscribe(res => this.handleReceiveMetadata(res, url), this.handleFetchError)
-  }
-
-  handleUrlKeyUp = evt => {
-    if (evt.key === 'Enter') {
-      this.fetchMetadata(evt.target.value)
-    }
-  }
-
-  handleRefresh = () => {
-    if (!this.props.value || !this.props.value.url) {
-      return
-    }
-
-    this.fetchMetadata(this.props.value.url)
-  }
-
-  handleReceiveMetadata(body, url) {
-    this.setState({loading: false})
-
-    const {onChange, type} = this.props
-    const {statusCode, resolvedUrl} = body
+    const {statusCode, resolvedUrl: newResolvedUrl, error} = body
 
     if (!statusCode || statusCode !== 200) {
       // @todo Show some sort of error dialog
+      toast.push({
+        status: 'error',
+        title: 'Failed to fetch URL metadata',
+        description: error ? error.message : undefined,
+      })
+
       return
     }
 
@@ -100,7 +97,7 @@ class UrlMetadataInput extends PureComponent {
       _type: type.name,
       crawledAt: new Date().toISOString(),
       url,
-      resolvedUrl
+      resolvedUrl: newResolvedUrl,
     }
 
     // Reduce the returned fields to only schema-defined fields,
@@ -131,86 +128,142 @@ class UrlMetadataInput extends PureComponent {
     }, initial)
 
     onChange(PatchEvent.from(set(doc)))
-  }
+    toast.push({
+      status: 'success',
+      title: 'Fetched URL metadata'
+    })
+  }, [toast, onChange, setIsLoading])
 
-  // @todo Provide fetch error as validation error?
-  handleFetchError(err) {
-    // eslint-disable-next-line
-    console.log('Error fetching metadata: ', err)
-  }
+  const fetchMetadata = useCallback(url => {
+    setIsLoading(true)
 
-  handleFieldChange = (field, patchEvent) => {
-    const {onChange} = this.props
+    if (requestRef.current) {
+      requestRef.current.unsubscribe()
+    }
+
+    const options = {
+      url: '/addons/crown/resolve',
+      query: {url},
+      json: true,
+    }
+
+    requestRef.current = sanityClient.observable
+      .request(options)
+      .subscribe(res => handleReceiveMetadata(res, url), handleFetchError)
+  },
+  [setIsLoading, requestRef, handleReceiveMetadata, handleFetchError])
+
+  const handleBlur = useCallback(() => {
+    if (!hasEdited || !value.url) {
+      return
+    }
+
+    fetchMetadata(value.url)
+  }, [fetchMetadata])
+
+  const handleUrlKeyUp = useCallback(evt => {
+    if (evt.key === 'Enter') {
+      fetchMetadata(evt.target.value)
+    }
+  }, [fetchMetadata])
+
+  const handleRefresh = useCallback(() => {
+    if (!value || !value.url) {
+      return
+    }
+
+    fetchMetadata(value.url)
+  }, [fetchMetadata])
+
+  const handleFieldChange = useCallback((field, patchEvent) => {
     onChange(patchEvent.prefixAll(field.name))
-  }
+  }, [onChange])
 
-  render() {
-    const {loading} = this.state
-    const {value, type, level, onFocus, onBlur, focusPath, markers} = this.props
-    const resolvedUrl = value && value.resolvedUrl
+  const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
+  const legends
+    = resolvedUrl
+    && metaFieldNames.reduce((target, fieldName) => {
+      const numItems = count(value[fieldName])
+      const base = metaFields.find(field => field.name === fieldName).type
+        .title
+      const items = numItems > 1 ? 'items' : 'item'
+      target[fieldName] = `${base} (${numItems} ${items})`
+      return target
+    }, {})
 
-    const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
-    const legends =
-      resolvedUrl &&
-      metaFieldNames.reduce((target, fieldName) => {
-        const numItems = count(value[fieldName])
-        const base = metaFields.find(field => field.name === fieldName).type.title
-        const items = numItems > 1 ? 'items' : 'item'
-        target[fieldName] = `${base} (${numItems} ${items})`
-        return target
-      }, {})
+  return (
+    <ChangeIndicatorCompareValueProvider
+      value={value ? value.current : undefined}
+      compareValue={compareValue ? compareValue.current : undefined}
+    >
+      <FormField
+        title={type.title}
+        description={type.description}
+        level={level}
+        __unstable_markers={markers}
+        __unstable_presence={presence}
+        inputId={inputId}
+      >
+        <Stack space={3}>
+          <Flex>
+            <Box flex={1}>
+              <TextInput
+                id={inputId}
+                ref={forwardedRef}
+                type="url"
+                value={value === undefined ? '' : value.url}
+                onKeyUp={handleUrlKeyUp}
+                onChange={handleBeforeUrlChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </Box>
+            <Box marginLeft={1}>
+              <Button
+                mode="ghost"
+                type="button"
+                onClick={handleRefresh}
+                disabled={readOnly || isLoading}
+                text={isLoading ? 'Loading...' : 'Refresh'}
+              />
+            </Box>
+          </Flex>
 
-    return (
-      <FormField label={type.title} description={type.description}>
-        <div className={inInputStyles.wrapper}>
-          <TextInput
-            ref={this.setFirstField}
-            type="url"
-            value={value === undefined ? '' : value.url}
-            onKeyUp={this.handleUrlKeyUp}
-            onChange={this.handleUrlChange}
-            onFocus={this.handleFocus}
-            onBlur={this.handleBlur}
-          />
-
-          <div className={inInputStyles.container}>
-            <InInputButton onClick={this.handleRefresh} disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
-            </InInputButton>
-          </div>
-        </div>
-
-        {resolvedUrl &&
-          metaFields.map(field => (
-            <Fieldset
+          {resolvedUrl && metaFields.map(field => (
+            <FormFieldSet
               key={field.name}
               legend={legends[field.name]}
-              style={fieldsetStyles}
-              isCollapsible
+              title={legends[field.name]}
+              level={level + 1}
+              collapsible
             >
               <FormBuilderInput
                 value={value && value[field.name]}
                 type={field.type}
-                onChange={patchEvent => this.handleFieldChange(field, patchEvent)}
+                onChange={patchEvent => handleFieldChange(field, patchEvent)}
                 path={[field.name]}
                 onFocus={onFocus}
                 onBlur={onBlur}
                 readOnly={field.type.readOnly}
                 focusPath={focusPath}
-                markers={markers.filter(marker => marker.path[0] === field.name)}
-                level={level}
-                ref={this.setInput}
+                markers={markers.filter(
+                  marker => marker.path[0] === field.name
+                )}
+                presence={presence.filter(
+                  fieldPresence => fieldPresence.path[0] === field.name
+                )}
               />
-            </Fieldset>
+            </FormFieldSet>
           ))}
+        </Stack>
       </FormField>
-    )
-  }
-}
+    </ChangeIndicatorCompareValueProvider>
+  )
+})
 
 UrlMetadataInput.defaultProps = {
   value: undefined,
-  markers: []
+  markers: [],
 }
 
 UrlMetadataInput.propTypes = {
@@ -218,27 +271,29 @@ UrlMetadataInput.propTypes = {
   level: PropTypes.number.isRequired,
   type: PropTypes.shape({
     title: PropTypes.string.isRequired,
-    description: PropTypes.string
+    description: PropTypes.string,
   }).isRequired,
   value: PropTypes.shape({
     url: PropTypes.string.isRequired,
     meta: PropTypes.shape({
       title: PropTypes.string,
-      description: PropTypes.string
+      description: PropTypes.string,
     }),
     openGraph: PropTypes.shape({
       title: PropTypes.string,
-      description: PropTypes.string
-    })
+      description: PropTypes.string,
+    }),
   }),
   onFocus: PropTypes.func.isRequired,
   onBlur: PropTypes.func.isRequired,
-  focusPath: PropTypes.array,
+  focusPath: PropTypes.arrayOf(
+    PropTypes.string
+  ),
   markers: PropTypes.arrayOf(
     PropTypes.shape({
-      type: PropTypes.string.isRequired
+      type: PropTypes.string.isRequired,
     })
-  )
+  ),
 }
 
 module.exports = UrlMetadataInput
