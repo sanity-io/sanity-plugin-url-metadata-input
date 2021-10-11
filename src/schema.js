@@ -41,7 +41,7 @@ export default {
         {
           title: 'Description',
           name: 'description',
-          type: 'string'
+          type: 'text'
         }
       ]
     },
@@ -60,7 +60,7 @@ export default {
         {
           title: 'Description',
           name: 'description',
-          type: 'string'
+          type: 'text'
         },
         {
           title: 'Site name',
