@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useRef,
+  useMemo,
 } from 'react'
 import PropTypes from 'prop-types'
 import {FormBuilderInput} from '@sanity/form-builder/lib/FormBuilderInput'
@@ -61,9 +62,10 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
   }, [handleUrlChange])
 
 
-  const handleFocus = () => {
+  const handleFocus = useMemo(() => {
     setHasEdited(false)
-  }
+    onFocus(['url'])
+  }, [setHasEdited, onFocus])
 
   // @todo Provide fetch error as validation error?
   const handleFetchError = err => {
@@ -193,18 +195,18 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
 
   return (
     <ChangeIndicatorCompareValueProvider
-      value={value ? value.current : undefined}
-      compareValue={compareValue ? compareValue.current : undefined}
+      value={value ? value.url : undefined}
+      compareValue={compareValue ? compareValue.url : undefined}
     >
-      <FormField
-        title={type.title}
-        description={type.description}
-        level={level}
-        __unstable_markers={markers}
-        __unstable_presence={presence}
-        inputId={inputId}
-      >
-        <Stack space={3}>
+      <Stack space={3}>
+        <FormField
+          title={type.title}
+          description={type.description}
+          level={level}
+          __unstable_markers={markers}
+          __unstable_presence={presence}
+          inputId={inputId}
+        >
           <Flex>
             <Box flex={1}>
               <TextInput
@@ -216,6 +218,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
                 onChange={handleBeforeUrlChange}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                readOnly={readOnly}
               />
             </Box>
             <Box marginLeft={1}>
@@ -228,35 +231,31 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
               />
             </Box>
           </Flex>
+        </FormField>
 
-          {resolvedUrl && metaFields.map(field => (
-            <FormFieldSet
-              key={field.name}
-              legend={legends[field.name]}
-              title={legends[field.name]}
-              level={level + 1}
-              collapsible
-            >
-              <FormBuilderInput
-                value={value && value[field.name]}
-                type={field.type}
-                onChange={patchEvent => handleFieldChange(field, patchEvent)}
-                path={[field.name]}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                readOnly={field.type.readOnly}
-                focusPath={focusPath}
-                markers={markers.filter(
-                  marker => marker.path[0] === field.name
-                )}
-                presence={presence.filter(
-                  fieldPresence => fieldPresence.path[0] === field.name
-                )}
-              />
-            </FormFieldSet>
-          ))}
-        </Stack>
-      </FormField>
+        {resolvedUrl && metaFields.map(field => (
+          <FormFieldSet
+            key={field.name}
+            legend={legends[field.name]}
+            title={legends[field.name]}
+            level={level + 1}
+            collapsible
+          >
+            <FormBuilderInput
+              value={value && value[field.name]}
+              type={field.type}
+              onChange={patchEvent => handleFieldChange(field, patchEvent)}
+              path={[field.name]}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              readOnly={field.type.readOnly}
+              focusPath={focusPath}
+              markers={markers}
+              presence={presence}
+            />
+          </FormFieldSet>
+        ))}
+      </Stack>
     </ChangeIndicatorCompareValueProvider>
   )
 })
