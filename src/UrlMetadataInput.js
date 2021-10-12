@@ -39,7 +39,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
 
   const handleUrlChange = useCallback(
     (newValue) => {
-      setHasEdited(true)
+      setHasEdited(value?.url !== newValue.trim())
 
       if (!newValue) {
         onChange(PatchEvent.from(unset()))
@@ -78,6 +78,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
   const handleReceiveMetadata = useCallback(
     (body, url) => {
       setIsLoading(false)
+      setHasEdited(false)
 
       const {statusCode, resolvedUrl: newResolvedUrl, error} = body
 
@@ -132,7 +133,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
         title: 'Fetched URL metadata',
       })
     },
-    [toast, onChange, setIsLoading]
+    [toast, onChange, setIsLoading, setHasEdited]
   )
 
   const fetchMetadata = useCallback(
@@ -201,12 +202,14 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
 
   return (
     <Stack space={3}>
+      {/* We disable __unstable_changeIndicator here because it overrides the inner ChangeIndicatorForFieldPath and causes the change indicators to not show up */}
       <FormField
         title={type.title}
         description={type.description}
         level={level}
         __unstable_markers={markers}
         __unstable_presence={presence}
+        __unstable_changeIndicator={false}
         inputId={inputId}
       >
         <ChangeIndicatorForFieldPath
@@ -252,13 +255,13 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
           >
             <FormBuilderInput
               value={value && value[field.name]}
+              compareValue={compareValue}
               type={field.type}
               onChange={(patchEvent) => handleFieldChange(field, patchEvent)}
               path={[field.name]}
-              compareValue={compareValue}
               onFocus={onFocus}
               onBlur={onBlur}
-              readOnly={field.type.readOnly}
+              readOnly={readOnly || field.type.readOnly}
               focusPath={focusPath}
               markers={markers}
               presence={presence}
