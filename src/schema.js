@@ -1,8 +1,10 @@
+import UrlMetadataInput from './UrlMetadataInput'
+
 export default {
   name: 'urlWithMetadata',
   title: 'URL with metadata',
   type: 'object',
-  inputComponent: require('./UrlMetadataInput'),
+  inputComponent: UrlMetadataInput,
   fieldsets: [
     {
       name: 'meta',
