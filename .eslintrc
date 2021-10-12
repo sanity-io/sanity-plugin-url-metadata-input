@@ -2,8 +2,8 @@
   "env": {
     "node": true
   },
-  "parser": "babel-eslint",
-  "extends": ["sanity", "sanity/react"],
+  "extends": ["sanity", "sanity/react", "plugin:prettier/recommended"],
+  "plugins": ["prettier"],
   "rules": {
     "newline-per-chained-call": 0,
     "sort-imports": 0
