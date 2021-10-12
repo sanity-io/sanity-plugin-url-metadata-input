@@ -1,11 +1,6 @@
 // @todo Maybe clean up complexity?
 /* eslint-disable complexity */
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useMemo,
-} from 'react'
+import React, {useState, useCallback, useRef, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import {FormBuilderInput} from '@sanity/form-builder/lib/FormBuilderInput'
 import PatchEvent, {set, unset} from '@sanity/form-builder/PatchEvent'
@@ -20,7 +15,7 @@ import {useId} from '@reach/auto-id'
 import {ChangeIndicatorCompareValueProvider} from '@sanity/base/change-indicators'
 
 const metaFieldNames = ['meta', 'openGraph']
-const count = obj => Object.keys(obj || {}).length
+const count = (obj) => Object.keys(obj || {}).length
 const sanityClient = client.withConfig({apiVersion: 'v1'})
 
 const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
@@ -44,23 +39,26 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
   const inputId = useId()
   const toast = useToast()
 
-  const handleUrlChange = useCallback(newValue => {
-    setHasEdited(true)
+  const handleUrlChange = useCallback(
+    (newValue) => {
+      setHasEdited(true)
 
-    if (!newValue) {
-      onChange(PatchEvent.from(unset()))
-      return
-    }
+      if (!newValue) {
+        onChange(PatchEvent.from(unset()))
+        return
+      }
 
-    onChange(
-      PatchEvent.from(unset(), set({_type: type.name, url: newValue.trim()}))
-    )
-  }, [onChange, setHasEdited])
+      onChange(PatchEvent.from(unset(), set({_type: type.name, url: newValue.trim()})))
+    },
+    [onChange, setHasEdited]
+  )
   // const handleDebouncedUrlChange = useCallback(debounce(handleUrlChange, 250), [handleUrlChange])
-  const handleBeforeUrlChange = useCallback(event => {
-    handleUrlChange(event.target.value)
-  }, [handleUrlChange])
-
+  const handleBeforeUrlChange = useCallback(
+    (event) => {
+      handleUrlChange(event.target.value)
+    },
+    [handleUrlChange]
+  )
 
   const handleFocus = useMemo(() => {
     setHasEdited(false)
@@ -68,9 +66,9 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
   }, [setHasEdited, onFocus])
 
   // @todo Provide fetch error as validation error?
-  const handleFetchError = err => {
+  const handleFetchError = (err) => {
     // eslint-disable-next-line
-    console.log("Error fetching metadata: ", err);
+    console.log('Error fetching metadata: ', err)
     toast.push({
       status: 'error',
       title: 'Failed to fetch URL metadata',
@@ -79,81 +77,86 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     setIsLoading(false)
   }
 
-  const handleReceiveMetadata = useCallback((body, url) => {
-    setIsLoading(false)
+  const handleReceiveMetadata = useCallback(
+    (body, url) => {
+      setIsLoading(false)
 
-    const {statusCode, resolvedUrl: newResolvedUrl, error} = body
+      const {statusCode, resolvedUrl: newResolvedUrl, error} = body
 
-    if (!statusCode || statusCode !== 200) {
-      // @todo Show some sort of error dialog
-      toast.push({
-        status: 'error',
-        title: 'Failed to fetch URL metadata',
-        description: error ? error.message : undefined,
-      })
+      if (!statusCode || statusCode !== 200) {
+        // @todo Show some sort of error dialog
+        toast.push({
+          status: 'error',
+          title: 'Failed to fetch URL metadata',
+          description: error ? error.message : undefined,
+        })
 
-      return
-    }
-
-    const initial = {
-      _type: type.name,
-      crawledAt: new Date().toISOString(),
-      url,
-      resolvedUrl: newResolvedUrl,
-    }
-
-    // Reduce the returned fields to only schema-defined fields,
-    // ensure that numbers are actual numbers (not strings)
-    const doc = metaFieldNames.reduce((data, fieldName) => {
-      const metaField = type.fields.find(item => item.name === fieldName)
-      const metaValue = body[fieldName]
-
-      if (!metaValue) {
-        return data
+        return
       }
 
-      data[fieldName] = metaField.type.fields.reduce((obj, field) => {
-        let fieldValue = metaValue[field.name]
-        if (!fieldValue) {
+      const initial = {
+        _type: type.name,
+        crawledAt: new Date().toISOString(),
+        url,
+        resolvedUrl: newResolvedUrl,
+      }
+
+      // Reduce the returned fields to only schema-defined fields,
+      // ensure that numbers are actual numbers (not strings)
+      const doc = metaFieldNames.reduce((data, fieldName) => {
+        const metaField = type.fields.find((item) => item.name === fieldName)
+        const metaValue = body[fieldName]
+
+        if (!metaValue) {
+          return data
+        }
+
+        data[fieldName] = metaField.type.fields.reduce((obj, field) => {
+          let fieldValue = metaValue[field.name]
+          if (!fieldValue) {
+            return obj
+          }
+
+          if (field.type.jsonType === 'number') {
+            fieldValue = Number(fieldValue)
+          }
+
+          obj[field.name] = fieldValue
           return obj
-        }
+        }, {})
 
-        if (field.type.jsonType === 'number') {
-          fieldValue = Number(fieldValue)
-        }
+        return data
+      }, initial)
 
-        obj[field.name] = fieldValue
-        return obj
-      }, {})
+      onChange(PatchEvent.from(set(doc)))
+      toast.push({
+        status: 'success',
+        title: 'Fetched URL metadata',
+      })
+    },
+    [toast, onChange, setIsLoading]
+  )
 
-      return data
-    }, initial)
+  const fetchMetadata = useCallback(
+    (url) => {
+      setIsLoading(true)
 
-    onChange(PatchEvent.from(set(doc)))
-    toast.push({
-      status: 'success',
-      title: 'Fetched URL metadata'
-    })
-  }, [toast, onChange, setIsLoading])
+      if (requestRef.current) {
+        requestRef.current.unsubscribe()
+      }
 
-  const fetchMetadata = useCallback(url => {
-    setIsLoading(true)
+      const options = {
+        url: '/addons/crown/resolve',
+        query: {url},
+        json: true,
+      }
 
-    if (requestRef.current) {
-      requestRef.current.unsubscribe()
-    }
-
-    const options = {
-      url: '/addons/crown/resolve',
-      query: {url},
-      json: true,
-    }
-
-    requestRef.current = sanityClient.observable
-      .request(options)
-      .subscribe(res => handleReceiveMetadata(res, url), handleFetchError)
-  },
-  [setIsLoading, requestRef, handleReceiveMetadata, handleFetchError])
+      requestRef.current = sanityClient.observable
+        .request(options)
+        .subscribe((res) => handleReceiveMetadata(res, url), handleFetchError)
+    },
+    [setIsLoading, requestRef, handleReceiveMetadata, handleFetchError]
+  )
 
   const handleBlur = useCallback(() => {
     if (!hasEdited || !value.url) {
@@ -163,11 +166,14 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     fetchMetadata(value.url)
   }, [fetchMetadata])
 
-  const handleUrlKeyUp = useCallback(evt => {
-    if (evt.key === 'Enter') {
-      fetchMetadata(evt.target.value)
-    }
-  }, [fetchMetadata])
+  const handleUrlKeyUp = useCallback(
+    (evt) => {
+      if (evt.key === 'Enter') {
+        fetchMetadata(evt.target.value)
+      }
+    },
+    [fetchMetadata]
+  )
 
   const handleRefresh = useCallback(() => {
     if (!value || !value.url) {
@@ -177,17 +183,19 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     fetchMetadata(value.url)
   }, [fetchMetadata])
 
-  const handleFieldChange = useCallback((field, patchEvent) => {
-    onChange(patchEvent.prefixAll(field.name))
-  }, [onChange])
+  const handleFieldChange = useCallback(
+    (field, patchEvent) => {
+      onChange(patchEvent.prefixAll(field.name))
+    },
+    [onChange]
+  )
 
-  const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
-  const legends
-    = resolvedUrl
-    && metaFieldNames.reduce((target, fieldName) => {
+  const metaFields = type.fields.filter((field) => metaFieldNames.includes(field.name))
+  const legends =
+    resolvedUrl &&
+    metaFieldNames.reduce((target, fieldName) => {
       const numItems = count(value[fieldName])
-      const base = metaFields.find(field => field.name === fieldName).type
-        .title
+      const base = metaFields.find((field) => field.name === fieldName).type.title
       const items = numItems > 1 ? 'items' : 'item'
       target[fieldName] = `${base} (${numItems} ${items})`
       return target
@@ -233,28 +241,29 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
           </Flex>
         </FormField>
 
-        {resolvedUrl && metaFields.map(field => (
-          <FormFieldSet
-            key={field.name}
-            legend={legends[field.name]}
-            title={legends[field.name]}
-            level={level + 1}
-            collapsible
-          >
-            <FormBuilderInput
-              value={value && value[field.name]}
-              type={field.type}
-              onChange={patchEvent => handleFieldChange(field, patchEvent)}
-              path={[field.name]}
-              onFocus={onFocus}
-              onBlur={onBlur}
-              readOnly={field.type.readOnly}
-              focusPath={focusPath}
-              markers={markers}
-              presence={presence}
-            />
-          </FormFieldSet>
-        ))}
+        {resolvedUrl &&
+          metaFields.map((field) => (
+            <FormFieldSet
+              key={field.name}
+              legend={legends[field.name]}
+              title={legends[field.name]}
+              level={level + 1}
+              collapsible
+            >
+              <FormBuilderInput
+                value={value && value[field.name]}
+                type={field.type}
+                onChange={(patchEvent) => handleFieldChange(field, patchEvent)}
+                path={[field.name]}
+                onFocus={onFocus}
+                onBlur={onBlur}
+                readOnly={field.type.readOnly}
+                focusPath={focusPath}
+                markers={markers}
+                presence={presence}
+              />
+            </FormFieldSet>
+          ))}
       </Stack>
     </ChangeIndicatorCompareValueProvider>
   )
@@ -285,9 +294,7 @@ UrlMetadataInput.propTypes = {
   }),
   onFocus: PropTypes.func.isRequired,
   onBlur: PropTypes.func.isRequired,
-  focusPath: PropTypes.arrayOf(
-    PropTypes.string
-  ),
+  focusPath: PropTypes.arrayOf(PropTypes.string),
   markers: PropTypes.arrayOf(
     PropTypes.shape({
       type: PropTypes.string.isRequired,

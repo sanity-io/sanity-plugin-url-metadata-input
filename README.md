@@ -22,8 +22,8 @@ Use it in your schema types:
     {
       name: 'relatedUrl',
       title: 'Related URL',
-      type: 'urlWithMetadata'
-    }
+      type: 'urlWithMetadata',
+    },
   ]
 }
 ```
