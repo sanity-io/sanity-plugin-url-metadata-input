@@ -21,7 +21,9 @@
   "peerDependencies": {
     "prop-types": "^15.6 || ^16",
     "react": "^16.9 || ^17",
-    "styled-components": "^5.2.0"
+    "styled-components": "^5.2.0",
+    "@sanity/base": "^2.21.0",
+    "@sanity/form-builder": "^2.21.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.15.7",
@@ -31,15 +33,11 @@
     "@babel/preset-env": "^7.15.8",
     "@babel/preset-react": "^7.14.5",
     "@reach/auto-id": "^0.13.2",
-    "@sanity/base": "2.21.0",
-    "@sanity/form-builder": "2.21.0",
+    "@sanity/base": "^2.21.0",
+    "@sanity/form-builder": "^2.21.0",
     "@sanity/icons": "^1.2.1",
-    "@sanity/types": "2.21.0",
+    "@sanity/types": "^2.21.0",
     "@sanity/ui": "^0.36.12",
-    "babel-plugin-syntax-class-properties": "^6.13.0",
-    "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-preset-env": "^1.6.1",
-    "babel-preset-react": "^6.24.1",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-sanity": "^5.1.0",

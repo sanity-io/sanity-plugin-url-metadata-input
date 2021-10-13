@@ -50,7 +50,6 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     },
     [onChange, setHasEdited]
   )
-  // const handleDebouncedUrlChange = useCallback(debounce(handleUrlChange, 250), [handleUrlChange])
   const handleBeforeUrlChange = useCallback(
     (event) => {
       handleUrlChange(event.target.value)
@@ -274,18 +273,33 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
 
 UrlMetadataInput.defaultProps = {
   value: undefined,
+  compareValue: undefined,
   markers: [],
+  presence: [],
 }
 
 UrlMetadataInput.propTypes = {
   onChange: PropTypes.func.isRequired,
   level: PropTypes.number.isRequired,
-  type: PropTypes.shape({
-    title: PropTypes.string.isRequired,
-    description: PropTypes.string,
-  }).isRequired,
+  type: PropTypes.object,
+  readOnly: PropTypes.bool,
   value: PropTypes.shape({
     url: PropTypes.string.isRequired,
+    resolvedUrl: PropTypes.string,
+    crawledAt: PropTypes.string,
+    meta: PropTypes.shape({
+      title: PropTypes.string,
+      description: PropTypes.string,
+    }),
+    openGraph: PropTypes.shape({
+      title: PropTypes.string,
+      description: PropTypes.string,
+    }),
+  }),
+  compareValue: PropTypes.shape({
+    url: PropTypes.string.isRequired,
+    resolvedUrl: PropTypes.string,
+    crawledAt: PropTypes.string,
     meta: PropTypes.shape({
       title: PropTypes.string,
       description: PropTypes.string,
@@ -298,6 +312,7 @@ UrlMetadataInput.propTypes = {
   onFocus: PropTypes.func.isRequired,
   onBlur: PropTypes.func.isRequired,
   focusPath: PropTypes.arrayOf(PropTypes.string),
+  presence: PropTypes.arrayOf(PropTypes.object),
   markers: PropTypes.arrayOf(
     PropTypes.shape({
       type: PropTypes.string.isRequired,
