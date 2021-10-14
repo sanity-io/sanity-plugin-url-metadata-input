@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-url-metadata-input",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "URL input for Sanity that retrieves metadata (title, description) along with OpenGraph information",
   "main": "lib/UrlMetadataInput.js",
   "author": "Sanity.io <hello@sanity.io>",
