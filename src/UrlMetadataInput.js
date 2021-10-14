@@ -57,7 +57,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     [handleUrlChange]
   )
 
-  const handleFocus = useMemo(() => {
+  const handleFocus = useCallback(() => {
     setHasEdited(false)
     onFocus(['url'])
   }, [setHasEdited, onFocus])
@@ -199,6 +199,11 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
       return target
     }, {})
 
+  // only have presence markers for the "url" field appear on the root formfield
+  const urlFieldPresence = presence.filter(
+    (item) => item.path.length === 1 && item.path[0] === 'url'
+  )
+
   return (
     <Stack space={3}>
       {/* We disable __unstable_changeIndicator here because it overrides the inner ChangeIndicatorForFieldPath and causes the change indicators to not show up */}
@@ -207,7 +212,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
         description={type.description}
         level={level}
         __unstable_markers={markers}
-        __unstable_presence={presence}
+        __unstable_presence={urlFieldPresence}
         __unstable_changeIndicator={false}
         inputId={inputId}
       >
