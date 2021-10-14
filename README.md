@@ -28,6 +28,19 @@ Use it in your schema types:
 }
 ```
 
+If you want the metadata below the URL field to be collapsed, set the `collapsed` option like so:
+
+```js
+{
+  name: 'relatedUrl',
+  title: 'Related URL',
+  type: 'urlWithMetadata',
+  options: {
+    collapsed: true,
+  }
+},
+```
+
 ## Data model
 
 Note: Empty keys are not included
