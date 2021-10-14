@@ -1,8 +1,10 @@
 # sanity-plugin-url-metadata-input
 
-URL input for [Sanity](https://sanity.io/) that retrieves metadata (title, description) along with [opengraph](http://ogp.me/) information.
+URL input for [Sanity](https://sanity.io/) that retrieves metadata (title, description) along with [OpenGraph](http://ogp.me/) information.
 
 Note: The resolving is done by an addon to the Sanity API and usage will at some point be an opt-in addon that is billed.
+
+![Screenshot](screenshot.png)
 
 ## Installation
 
