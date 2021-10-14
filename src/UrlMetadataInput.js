@@ -1,244 +1,339 @@
-import React, {PureComponent} from 'react'
+// @todo Maybe clean up complexity?
+/* eslint-disable complexity */
+// @todo Also maybe clean up nested callbacks for better readability
+/* eslint-disable max-nested-callbacks */
+import React, {useState, useCallback, useRef, useMemo} from 'react'
 import PropTypes from 'prop-types'
-import {FormBuilderInput, PatchEvent, patches} from 'part:@sanity/form-builder'
-import InInputButton from 'part:@sanity/components/buttons/in-input'
-import inInputStyles from 'part:@sanity/components/buttons/in-input-style'
-import TextInput from 'part:@sanity/components/textinputs/default'
-import FormField from 'part:@sanity/components/formfields/default'
-import Fieldset from 'part:@sanity/components/fieldsets/default'
+import {FormBuilderInput} from '@sanity/form-builder/lib/FormBuilderInput'
+import PatchEvent, {set, unset} from '@sanity/form-builder/PatchEvent'
+import {FormFieldSet} from '@sanity/base/components'
 import client from 'part:@sanity/base/client'
-import fieldsetStyles from './fieldsetStyles.css'
+
+import {FormField} from '@sanity/base/components'
+import {TextInput, Button, Flex, Box, Stack, useToast} from '@sanity/ui'
+import {useId} from '@reach/auto-id'
+import {ChangeIndicatorForFieldPath} from '@sanity/base/change-indicators'
 
 const metaFieldNames = ['meta', 'openGraph']
-const count = obj => Object.keys(obj || {}).length
-const {set, unset} = patches
+const count = (obj) => Object.keys(obj || {}).length
+const sanityClient = client.withConfig({apiVersion: 'v1'})
 
-class UrlMetadataInput extends PureComponent {
-  hasEdited = false
-  state = {loading: false}
+const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
+  const {
+    value,
+    compareValue,
+    type,
+    level,
+    onFocus,
+    onBlur,
+    onChange,
+    focusPath,
+    readOnly,
+    markers,
+    presence,
+  } = props
+  const resolvedUrl = value && value.resolvedUrl
+  const [hasEdited, setHasEdited] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const requestRef = useRef()
+  const inputId = useId()
+  const toast = useToast()
+  const collapsed = type?.options?.collapsed
 
-  handleUrlChange = evt => {
-    this.hasEdited = true
+  const handleUrlChange = useCallback(
+    (newValue) => {
+      setHasEdited(value?.url !== newValue.trim())
 
-    const {onChange, type} = this.props
-    const value = evt.target.value
-
-    if (!value) {
-      onChange(PatchEvent.from(unset()))
-      return
-    }
-
-    onChange(PatchEvent.from(unset(), set({_type: type.name, url: value.trim()})))
-  }
-
-  setFirstField = el => {
-    this._firstField = el
-  }
-
-  focus() {
-    if (this._firstField) {
-      this._firstField.focus()
-    }
-  }
-
-  handleFocus = () => {
-    this.hasEdited = false
-  }
-
-  handleBlur = () => {
-    if (!this.hasEdited || !this.props.value.url) {
-      return
-    }
-
-    this.fetchMetadata(this.props.value.url)
-  }
-
-  fetchMetadata(url) {
-    this.setState({loading: true})
-
-    if (this.request) {
-      this.request.unsubscribe()
-    }
-
-    const options = {
-      url: '/addons/crown/resolve',
-      query: {url},
-      json: true
-    }
-
-    this.request = client.observable
-      .request(options)
-      .subscribe(res => this.handleReceiveMetadata(res, url), this.handleFetchError)
-  }
-
-  handleUrlKeyUp = evt => {
-    if (evt.key === 'Enter') {
-      this.fetchMetadata(evt.target.value)
-    }
-  }
-
-  handleRefresh = () => {
-    if (!this.props.value || !this.props.value.url) {
-      return
-    }
-
-    this.fetchMetadata(this.props.value.url)
-  }
-
-  handleReceiveMetadata(body, url) {
-    this.setState({loading: false})
-
-    const {onChange, type} = this.props
-    const {statusCode, resolvedUrl} = body
-
-    if (!statusCode || statusCode !== 200) {
-      // @todo Show some sort of error dialog
-      return
-    }
-
-    const initial = {
-      _type: type.name,
-      crawledAt: new Date().toISOString(),
-      url,
-      resolvedUrl
-    }
-
-    // Reduce the returned fields to only schema-defined fields,
-    // ensure that numbers are actual numbers (not strings)
-    const doc = metaFieldNames.reduce((data, fieldName) => {
-      const metaField = type.fields.find(item => item.name === fieldName)
-      const metaValue = body[fieldName]
-
-      if (!metaValue) {
-        return data
+      if (!newValue) {
+        onChange(PatchEvent.from(unset()))
+        return
       }
 
-      data[fieldName] = metaField.type.fields.reduce((obj, field) => {
-        let fieldValue = metaValue[field.name]
-        if (!fieldValue) {
-          return obj
-        }
+      onChange(PatchEvent.from(unset(), set({_type: type.name, url: newValue.trim()})))
+    },
+    [onChange, setHasEdited, value]
+  )
+  const handleBeforeUrlChange = useCallback(
+    (event) => {
+      handleUrlChange(event.target.value)
+    },
+    [handleUrlChange]
+  )
 
-        if (field.type.jsonType === 'number') {
-          fieldValue = Number(fieldValue)
-        }
-
-        obj[field.name] = fieldValue
-        return obj
-      }, {})
-
-      return data
-    }, initial)
-
-    onChange(PatchEvent.from(set(doc)))
-  }
+  const handleFocus = useCallback(() => {
+    setHasEdited(false)
+    onFocus(['url'])
+  }, [setHasEdited, onFocus])
 
   // @todo Provide fetch error as validation error?
-  handleFetchError(err) {
-    // eslint-disable-next-line
-    console.log('Error fetching metadata: ', err)
-  }
+  const handleFetchError = useCallback(
+    (err) => {
+      // eslint-disable-next-line
+      console.log('Error fetching metadata: ', err)
+      toast.push({
+        status: 'error',
+        title: 'Failed to fetch URL metadata',
+        description: err.message,
+      })
+      setIsLoading(false)
+    },
+    [toast, setIsLoading]
+  )
 
-  handleFieldChange = (field, patchEvent) => {
-    const {onChange} = this.props
-    onChange(patchEvent.prefixAll(field.name))
-  }
+  const handleReceiveMetadata = useCallback(
+    (body, url) => {
+      setIsLoading(false)
+      setHasEdited(false)
 
-  render() {
-    const {loading} = this.state
-    const {value, type, level, onFocus, onBlur, focusPath, markers} = this.props
-    const resolvedUrl = value && value.resolvedUrl
+      const {statusCode, resolvedUrl: newResolvedUrl, error} = body
 
-    const metaFields = type.fields.filter(field => metaFieldNames.includes(field.name))
-    const legends =
+      if (!statusCode || statusCode !== 200) {
+        toast.push({
+          status: 'error',
+          title: 'Failed to fetch URL metadata',
+          description: error ? error.message : undefined,
+        })
+
+        return
+      }
+
+      const initial = {
+        _type: type.name,
+        crawledAt: new Date().toISOString(),
+        url,
+        resolvedUrl: newResolvedUrl,
+      }
+
+      // Reduce the returned fields to only schema-defined fields,
+      // ensure that numbers are actual numbers (not strings)
+      const doc = metaFieldNames.reduce((data, fieldName) => {
+        const metaField = type.fields.find((item) => item.name === fieldName)
+        const metaValue = body[fieldName]
+
+        if (!metaValue) {
+          return data
+        }
+
+        data[fieldName] = metaField.type.fields.reduce((obj, field) => {
+          let fieldValue = metaValue[field.name]
+          if (!fieldValue) {
+            return obj
+          }
+
+          if (field.type.jsonType === 'number') {
+            fieldValue = Number(fieldValue)
+          }
+
+          obj[field.name] = fieldValue
+          return obj
+        }, {})
+
+        return data
+      }, initial)
+
+      onChange(PatchEvent.from(set(doc)))
+      toast.push({
+        status: 'success',
+        title: 'Fetched URL metadata',
+      })
+    },
+    [toast, onChange, setIsLoading, setHasEdited]
+  )
+
+  const fetchMetadata = useCallback(
+    (url) => {
+      setIsLoading(true)
+
+      if (requestRef.current) {
+        requestRef.current.unsubscribe()
+      }
+
+      const options = {
+        url: '/addons/crown/resolve',
+        query: {url},
+        json: true,
+      }
+
+      requestRef.current = sanityClient.observable
+        .request(options)
+        .subscribe((res) => handleReceiveMetadata(res, url), handleFetchError)
+    },
+    [setIsLoading, requestRef, handleReceiveMetadata, handleFetchError]
+  )
+
+  const handleBlur = useCallback(() => {
+    if (!hasEdited || !value.url) {
+      return
+    }
+
+    fetchMetadata(value.url)
+  }, [fetchMetadata, value, hasEdited])
+
+  const handleUrlKeyUp = useCallback(
+    (evt) => {
+      if (evt.key === 'Enter') {
+        fetchMetadata(evt.target.value)
+      }
+    },
+    [fetchMetadata]
+  )
+
+  const handleRefresh = useCallback(() => {
+    if (!value || !value.url) {
+      return
+    }
+
+    fetchMetadata(value.url)
+  }, [fetchMetadata, value])
+
+  const handleFieldChange = useCallback(
+    (field, patchEvent) => {
+      onChange(patchEvent.prefixAll(field.name))
+    },
+    [onChange]
+  )
+
+  const metaFields = useMemo(() => {
+    return type.fields.filter((field) => metaFieldNames.includes(field.name))
+  }, [type, metaFieldNames])
+  const legends = useMemo(() => {
+    return (
       resolvedUrl &&
       metaFieldNames.reduce((target, fieldName) => {
         const numItems = count(value[fieldName])
-        const base = metaFields.find(field => field.name === fieldName).type.title
+        const base = metaFields.find((field) => field.name === fieldName).type.title
         const items = numItems > 1 ? 'items' : 'item'
         target[fieldName] = `${base} (${numItems} ${items})`
         return target
       }, {})
-
-    return (
-      <FormField label={type.title} description={type.description}>
-        <div className={inInputStyles.wrapper}>
-          <TextInput
-            ref={this.setFirstField}
-            type="url"
-            value={value === undefined ? '' : value.url}
-            onKeyUp={this.handleUrlKeyUp}
-            onChange={this.handleUrlChange}
-            onFocus={this.handleFocus}
-            onBlur={this.handleBlur}
-          />
-
-          <div className={inInputStyles.container}>
-            <InInputButton onClick={this.handleRefresh} disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
-            </InInputButton>
-          </div>
-        </div>
-
-        {resolvedUrl &&
-          metaFields.map(field => (
-            <Fieldset
-              key={field.name}
-              legend={legends[field.name]}
-              style={fieldsetStyles}
-              isCollapsible
-            >
-              <FormBuilderInput
-                value={value && value[field.name]}
-                type={field.type}
-                onChange={patchEvent => this.handleFieldChange(field, patchEvent)}
-                path={[field.name]}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                readOnly={field.type.readOnly}
-                focusPath={focusPath}
-                markers={markers.filter(marker => marker.path[0] === field.name)}
-                level={level}
-                ref={this.setInput}
-              />
-            </Fieldset>
-          ))}
-      </FormField>
     )
-  }
-}
+  }, [resolvedUrl, metaFields, metaFieldNames])
+
+  // only have presence markers for the "url" field appear on the root formfield
+  const urlFieldPresence = presence.filter(
+    (item) => item.path.length === 1 && item.path[0] === 'url'
+  )
+
+  return (
+    <Stack space={3}>
+      {/* We disable __unstable_changeIndicator here because it overrides the inner ChangeIndicatorForFieldPath and causes the change indicators to not show up */}
+      <FormField
+        title={type.title}
+        description={type.description}
+        level={level}
+        __unstable_markers={markers}
+        __unstable_presence={urlFieldPresence}
+        __unstable_changeIndicator={false}
+        inputId={inputId}
+      >
+        <ChangeIndicatorForFieldPath
+          path={['url']}
+          hasFocus={focusPath?.[0] === 'url'}
+          isChanged={value?.url !== compareValue?.url}
+        >
+          <Flex>
+            <Box flex={1}>
+              <TextInput
+                id={inputId}
+                ref={forwardedRef}
+                type="url"
+                value={value === undefined ? '' : value.url}
+                onKeyUp={handleUrlKeyUp}
+                onChange={handleBeforeUrlChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                readOnly={readOnly}
+              />
+            </Box>
+            <Box marginLeft={1}>
+              <Button
+                mode="ghost"
+                type="button"
+                onClick={handleRefresh}
+                disabled={readOnly || isLoading}
+                text={isLoading ? 'Loading...' : 'Refresh'}
+              />
+            </Box>
+          </Flex>
+        </ChangeIndicatorForFieldPath>
+      </FormField>
+
+      {resolvedUrl &&
+        metaFields.map((field) => (
+          <FormFieldSet
+            key={field.name}
+            legend={legends[field.name]}
+            title={legends[field.name]}
+            level={level + 1}
+            collapsible
+            collapsed={collapsed}
+          >
+            <FormBuilderInput
+              value={value && value[field.name]}
+              compareValue={compareValue}
+              type={field.type}
+              onChange={(patchEvent) => handleFieldChange(field, patchEvent)}
+              path={[field.name]}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              readOnly={readOnly || field.type.readOnly}
+              focusPath={focusPath}
+              markers={markers}
+              presence={presence}
+            />
+          </FormFieldSet>
+        ))}
+    </Stack>
+  )
+})
 
 UrlMetadataInput.defaultProps = {
   value: undefined,
-  markers: []
+  compareValue: undefined,
+  markers: [],
+  presence: [],
 }
 
 UrlMetadataInput.propTypes = {
   onChange: PropTypes.func.isRequired,
   level: PropTypes.number.isRequired,
-  type: PropTypes.shape({
-    title: PropTypes.string.isRequired,
-    description: PropTypes.string
-  }).isRequired,
+  type: PropTypes.object,
+  readOnly: PropTypes.bool,
   value: PropTypes.shape({
     url: PropTypes.string.isRequired,
+    resolvedUrl: PropTypes.string,
+    crawledAt: PropTypes.string,
     meta: PropTypes.shape({
       title: PropTypes.string,
-      description: PropTypes.string
+      description: PropTypes.string,
     }),
     openGraph: PropTypes.shape({
       title: PropTypes.string,
-      description: PropTypes.string
-    })
+      description: PropTypes.string,
+    }),
+  }),
+  compareValue: PropTypes.shape({
+    url: PropTypes.string.isRequired,
+    resolvedUrl: PropTypes.string,
+    crawledAt: PropTypes.string,
+    meta: PropTypes.shape({
+      title: PropTypes.string,
+      description: PropTypes.string,
+    }),
+    openGraph: PropTypes.shape({
+      title: PropTypes.string,
+      description: PropTypes.string,
+    }),
   }),
   onFocus: PropTypes.func.isRequired,
   onBlur: PropTypes.func.isRequired,
-  focusPath: PropTypes.array,
+  focusPath: PropTypes.arrayOf(PropTypes.string),
+  presence: PropTypes.arrayOf(PropTypes.object),
   markers: PropTypes.arrayOf(
     PropTypes.shape({
-      type: PropTypes.string.isRequired
+      type: PropTypes.string.isRequired,
     })
-  )
+  ),
 }
 
-module.exports = UrlMetadataInput
+export default UrlMetadataInput
