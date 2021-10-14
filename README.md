@@ -4,7 +4,7 @@ URL input for [Sanity](https://sanity.io/) that retrieves metadata (title, descr
 
 Note: The resolving is done by an addon to the Sanity API and usage will at some point be an opt-in addon that is billed.
 
-![Screenshot](screenshot.png)
+<img src="screenshot.png" alt="Screenshot of the URL metadata input inside a Sanity studio" width="600">
 
 ## Installation
 
