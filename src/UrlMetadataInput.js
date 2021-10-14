@@ -57,7 +57,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     [handleUrlChange]
   )
 
-  const handleFocus = useMemo(() => {
+  const handleFocus = useCallback(() => {
     setHasEdited(false)
     onFocus(['url'])
   }, [setHasEdited, onFocus])
