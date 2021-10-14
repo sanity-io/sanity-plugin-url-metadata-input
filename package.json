@@ -23,7 +23,11 @@
     "react": "^16.9 || ^17",
     "styled-components": "^5.2.0",
     "@sanity/base": "^2.21.0",
-    "@sanity/form-builder": "^2.21.0"
+    "@sanity/form-builder": "^2.21.0",
+    "@sanity/util": "^2.21.0",
+    "@sanity/types": "^2.21.0",
+    "@sanity/icons": "^1.2.1",
+    "@sanity/ui": "^0.36.12"
   },
   "devDependencies": {
     "@babel/cli": "^7.15.7",
@@ -35,8 +39,9 @@
     "@reach/auto-id": "^0.13.2",
     "@sanity/base": "^2.21.0",
     "@sanity/form-builder": "^2.21.0",
-    "@sanity/icons": "^1.2.1",
     "@sanity/types": "^2.21.0",
+    "@sanity/util": "^2.21.0",
+    "@sanity/icons": "^1.2.1",
     "@sanity/ui": "^0.36.12",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^8.3.0",
