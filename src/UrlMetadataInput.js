@@ -38,6 +38,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
   const requestRef = useRef()
   const inputId = useId()
   const toast = useToast()
+  const collapsed = type?.options?.collapsed
 
   const handleUrlChange = useCallback(
     (newValue) => {
@@ -265,6 +266,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
             title={legends[field.name]}
             level={level + 1}
             collapsible
+            collapsed={collapsed}
           >
             <FormBuilderInput
               value={value && value[field.name]}
