@@ -1,5 +1,7 @@
 // @todo Maybe clean up complexity?
 /* eslint-disable complexity */
+// @todo Also maybe clean up nested callbacks for better readability
+/* eslint-disable max-nested-callbacks */
 import React, {useState, useCallback, useRef, useMemo} from 'react'
 import PropTypes from 'prop-types'
 import {FormBuilderInput} from '@sanity/form-builder/lib/FormBuilderInput'
@@ -48,7 +50,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
 
       onChange(PatchEvent.from(unset(), set({_type: type.name, url: newValue.trim()})))
     },
-    [onChange, setHasEdited]
+    [onChange, setHasEdited, value]
   )
   const handleBeforeUrlChange = useCallback(
     (event) => {
@@ -63,16 +65,19 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
   }, [setHasEdited, onFocus])
 
   // @todo Provide fetch error as validation error?
-  const handleFetchError = (err) => {
-    // eslint-disable-next-line
-    console.log('Error fetching metadata: ', err)
-    toast.push({
-      status: 'error',
-      title: 'Failed to fetch URL metadata',
-      description: err.message,
-    })
-    setIsLoading(false)
-  }
+  const handleFetchError = useCallback(
+    (err) => {
+      // eslint-disable-next-line
+      console.log('Error fetching metadata: ', err)
+      toast.push({
+        status: 'error',
+        title: 'Failed to fetch URL metadata',
+        description: err.message,
+      })
+      setIsLoading(false)
+    },
+    [toast, setIsLoading]
+  )
 
   const handleReceiveMetadata = useCallback(
     (body, url) => {
@@ -82,7 +87,6 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
       const {statusCode, resolvedUrl: newResolvedUrl, error} = body
 
       if (!statusCode || statusCode !== 200) {
-        // @todo Show some sort of error dialog
         toast.push({
           status: 'error',
           title: 'Failed to fetch URL metadata',
@@ -162,7 +166,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     }
 
     fetchMetadata(value.url)
-  }, [fetchMetadata])
+  }, [fetchMetadata, value, hasEdited])
 
   const handleUrlKeyUp = useCallback(
     (evt) => {
@@ -179,7 +183,7 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     }
 
     fetchMetadata(value.url)
-  }, [fetchMetadata])
+  }, [fetchMetadata, value])
 
   const handleFieldChange = useCallback(
     (field, patchEvent) => {
@@ -188,16 +192,21 @@ const UrlMetadataInput = React.forwardRef((props, forwardedRef) => {
     [onChange]
   )
 
-  const metaFields = type.fields.filter((field) => metaFieldNames.includes(field.name))
-  const legends =
-    resolvedUrl &&
-    metaFieldNames.reduce((target, fieldName) => {
-      const numItems = count(value[fieldName])
-      const base = metaFields.find((field) => field.name === fieldName).type.title
-      const items = numItems > 1 ? 'items' : 'item'
-      target[fieldName] = `${base} (${numItems} ${items})`
-      return target
-    }, {})
+  const metaFields = useMemo(() => {
+    return type.fields.filter((field) => metaFieldNames.includes(field.name))
+  }, [type, metaFieldNames])
+  const legends = useMemo(() => {
+    return (
+      resolvedUrl &&
+      metaFieldNames.reduce((target, fieldName) => {
+        const numItems = count(value[fieldName])
+        const base = metaFields.find((field) => field.name === fieldName).type.title
+        const items = numItems > 1 ? 'items' : 'item'
+        target[fieldName] = `${base} (${numItems} ${items})`
+        return target
+      }, {})
+    )
+  }, [resolvedUrl, metaFields, metaFieldNames])
 
   // only have presence markers for the "url" field appear on the root formfield
   const urlFieldPresence = presence.filter(
